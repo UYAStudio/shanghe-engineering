@@ -176,13 +176,14 @@ input:focus,select:focus { outline: none; border-color: #888; }
       <button class="btn btn-p" style="margin-left:auto" onclick="openAddExp()"><i class="ti ti-plus"></i> 新增支出</button>
     </div>
     <div class="mg" id="exp-mg"></div>
+    <div id="exp-subtotal"></div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
         <div class="stitle" style="margin:0">支出明細</div>
         <button class="btn btn-p" onclick="openAddExp()"><i class="ti ti-plus"></i> 新增支出</button>
       </div>
       <div style="overflow-x:auto"><table>
-        <thead><tr><th>日期</th><th>類別</th><th>說明</th><th>金額</th><th>付款人</th><th></th></tr></thead>
+        <thead><tr><th>日期</th><th>類別</th><th>說明</th><th>金額</th><th>付款人</th><th>類型</th><th>發票/收據</th><th></th></tr></thead>
         <tbody id="exp-body"></tbody>
       </table></div>
     </div>
@@ -357,6 +358,7 @@ const _now=new Date();
 const _prevM=_now.getMonth()===0?12:_now.getMonth();
 const _prevY=_now.getMonth()===0?_now.getFullYear()-1:_now.getFullYear();
 let calY=_prevY, calM=_prevM, salY=_prevY, salM=_prevM, incY=_prevY, incM=_prevM, expY=_prevY, expM=_prevM, actEmp=null, cfgKey=`${_prevY}-${String(_prevM).padStart(2,'0')}`;
+let _expInit=false, _incInit=false;
 
 function pad(n){return String(n).padStart(2,'0');}
 function ds(y,m,d){return `${y}-${pad(m)}-${pad(d)}`;}
@@ -423,8 +425,8 @@ function T(t){
   if(t==='summary'){iSumSel();rSummary();}
   if(t==='calendar') rCal();
   if(t==='salary'){salY=calY;salM=calM;rSalary();}
-  if(t==='expense'){expY=_prevY;expM=_prevM;rExpense();}
-  if(t==='income'){rIncome();}
+  if(t==='expense'){if(!_expInit){expY=_prevY;expM=_prevM;_expInit=true;}rExpense();}
+  if(t==='income'){if(!_incInit){incY=_prevY;incM=_prevM;_incInit=true;}rIncome();}
   if(t==='settings') rSettings();
 }
 window.T=T;
@@ -816,7 +818,7 @@ function rEmpDetail(ed,key,md){
         <td style="font-weight:500">$${dn.toLocaleString()}</td>
         <td style="white-space:nowrap">
           ${p._calOnly
-            ? '<span style="font-size:11px;color:#bbb">僅去向</span>'
+            ? `<button class="btn btn-sm" onclick="editCalOnly('${key}','${p.date}')"><i class="ti ti-pencil"></i> 補打卡</button>`
             : `<button class="btn btn-sm" style="margin-right:4px" onclick="editPunch('${key}','${p.date}')"><i class="ti ti-pencil"></i></button>
                <button class="btn btn-sm" onclick="delPunch('${key}','${p.date}')"><i class="ti ti-trash"></i></button>`
           }
@@ -895,8 +897,28 @@ function editPunch(key,dateStr){
     ()=>saveEditPunch(key,p.date));
 }
 window.editPunch=editPunch;
+function editCalOnly(key,dateStr){
+  const md=getMD(key);
+  const loc=md.locations[dateStr]?.[actEmp]||'';
+  openModal('補填打卡時間',`
+    <div style="margin-bottom:6px;font-size:13px;color:#888">${dateStr} &nbsp;去向：${loc||'未設定'}</div>
+    <div style="margin-bottom:10px"><div style="font-size:12px;color:#888;margin-bottom:3px">上班時間</div>
+      <input type="time" id="co-in" style="width:100%"></div>
+    <div style="margin-bottom:10px"><div style="font-size:12px;color:#888;margin-bottom:3px">下班時間</div>
+      <input type="time" id="co-out" style="width:100%"></div>`,
+    ()=>{
+      const inVal=document.getElementById('co-in').value;
+      const outVal=document.getElementById('co-out').value;
+      if(!inVal||!outVal){alert('請填入上下班時間');return;}
+      const pkey=dateStr.slice(0,7);
+      const pmd=getMD(pkey);
+      // 新增打卡紀錄
+      pmd.punches.push({date:dateStr,name:actEmp,in:inVal,out:outVal,loc:loc});
+      closeModal();rSalary();save();
+    });
+}
+window.editCalOnly=editCalOnly;
 function toggleDriveInput(){
-  const checked=document.getElementById('ep-drive')?.checked;
   const row=document.getElementById('ep-drive-row');
   if(row) row.style.display=checked?'flex':'none';
 }
@@ -1028,15 +1050,36 @@ function rExpense(){
   document.getElementById('exp-mg').innerHTML=
     `<div class="mt"><div class="mt-l">本月支出</div><div class="mt-v red">$${total.toLocaleString()}</div></div>`+
     top.slice(0,3).map(([c,v])=>`<div class="mt"><div class="mt-l">${c}</div><div class="mt-v amber">$${v.toLocaleString()}</div></div>`).join('');
+  // 月結小計
+  const cashTotal=mEx.filter(e=>e.payType!=='月結').reduce((s,e)=>s+e.amount,0);
+  const monthlyPending=mEx.filter(e=>e.payType==='月結'&&e.settled!==true).reduce((s,e)=>s+e.amount,0);
+  const monthlySettled=mEx.filter(e=>e.payType==='月結'&&e.settled===true).reduce((s,e)=>s+e.amount,0);
+  const hasPending=monthlyPending>0;
+  document.getElementById('exp-subtotal').innerHTML=`
+    <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px;margin-bottom:10px;align-items:center">
+      <span>現金 <b>$${cashTotal.toLocaleString()}</b></span>
+      <span style="color:${hasPending?'#A32D2D':'#888'}">月結待結清 <b>$${monthlyPending.toLocaleString()}</b></span>
+      <span style="color:#1D9E75">月結已結清 <b>$${monthlySettled.toLocaleString()}</b></span>
+      ${hasPending?`<button class="btn btn-sm" style="margin-left:auto;background:#1a1a1a;color:#fff" onclick="settleAll('${key}')">全部結清</button>`:''}
+    </div>`;
   document.getElementById('exp-body').innerHTML=!mEx.length
-    ?`<tr><td colspan="6" style="text-align:center;color:#888;padding:1.5rem">本月無支出記錄</td></tr>`
+    ?`<tr><td colspan="8" style="text-align:center;color:#888;padding:1.5rem">本月無支出記錄</td></tr>`
     :mEx.map((e,i)=>{const gi=EX.indexOf(e);
-    return `<tr><td>${e.date.slice(5)}</td><td><span class="badge bg-gray">${e.cat}</span></td><td>${e.desc}</td>
-    <td style="font-weight:500">$${e.amount.toLocaleString()}</td><td>${e.payer||'—'}</td>
-    <td style="white-space:nowrap">
-      <button class="btn btn-sm" style="margin-right:4px" onclick="editExp(${gi})"><i class="ti ti-pencil"></i></button>
-      <button class="btn btn-sm" onclick="delExp(${gi})"><i class="ti ti-trash"></i></button>
-    </td></tr>`;}).join('');
+    const isMonthly=e.payType==='月結';
+    const settled=e.settled===true;
+    const typeBadge=isMonthly
+      ?`<span class="badge" style="background:${settled?'#E1F5EE':'#FCEBEB'};color:${settled?'#0F6E56':'#A32D2D'}">${settled?'✅ 已結清':'🔴 月結'}</span>`
+      :`<span class="badge bg-gray">現金</span>`;
+    return `<tr style="${isMonthly&&!settled?'background:#fffafa':''}">
+      <td>${e.date.slice(5)}</td><td><span class="badge bg-gray">${e.cat}</span></td><td>${e.desc}</td>
+      <td style="font-weight:500">$${e.amount.toLocaleString()}</td><td>${e.payer||'—'}</td>
+      <td>${typeBadge}</td>
+      <td style="font-size:11px;color:#888">${e.invoice||'—'}</td>
+      <td style="white-space:nowrap">
+        ${isMonthly&&!settled?`<button class="btn btn-sm" style="margin-right:4px" onclick="settleOne(${gi})">結清</button>`:''}
+        <button class="btn btn-sm" style="margin-right:4px" onclick="editExp(${gi})"><i class="ti ti-pencil"></i></button>
+        <button class="btn btn-sm" onclick="delExp(${gi})"><i class="ti ti-trash"></i></button>
+      </td></tr>`;}).join('');
 }
 function delExp(i){if(confirm('確定刪除？')){EX.splice(i,1);rExpense();save();}}
 window.delExp=delExp;
@@ -1054,14 +1097,22 @@ function editExp(i){
     <div style="margin-bottom:10px"><div style="font-size:12px;color:#888;margin-bottom:3px">金額（元）</div>
       <input type="number" id="e-amt" value="${e.amount}"></div>
     <div style="margin-bottom:10px"><div style="font-size:12px;color:#888;margin-bottom:3px">付款人</div>
-      <select id="e-payer"><option value="">— 非員工付款 —</option>${md.employees.map(emp=>`<option ${e.payer===emp.name?'selected':''}>${emp.name}</option>`).join('')}</select></div>`,
+      <select id="e-payer"><option value="">— 非員工付款 —</option>${md.employees.map(emp=>`<option ${e.payer===emp.name?'selected':''}>${emp.name}</option>`).join('')}</select></div>
+    <div style="margin-bottom:10px"><div style="font-size:12px;color:#888;margin-bottom:3px">付款類型</div>
+      <select id="e-paytype"><option value="現金" ${e.payType!=='月結'?'selected':''}>現金</option><option value="月結" ${e.payType==='月結'?'selected':''}>月結</option></select></div>
+    <div style="margin-bottom:10px"><div style="font-size:12px;color:#888;margin-bottom:3px">發票/收據編號</div>
+      <input type="text" id="e-invoice" value="${e.invoice||''}" style="width:100%"></div>`,
     ()=>saveEditExp(i));
 }
 window.editExp=editExp;
 function saveEditExp(i){
+  const prev=EX[i]||{};
   EX[i]={date:document.getElementById('e-date').value,cat:document.getElementById('e-cat').value,
     desc:document.getElementById('e-desc').value,amount:Number(document.getElementById('e-amt').value),
-    payer:document.getElementById('e-payer').value};
+    payer:document.getElementById('e-payer').value,
+    payType:document.getElementById('e-paytype')?.value||prev.payType||'現金',
+    invoice:document.getElementById('e-invoice')?.value||'',
+    settled:prev.settled||false};
   closeModal();rExpense();save();
 }
 window.saveEditExp=saveEditExp;
@@ -1084,7 +1135,10 @@ function saveExp(){
   const dateVal=document.getElementById('e-date').value;
   const e={date:dateVal,cat:document.getElementById('e-cat').value,
     desc:document.getElementById('e-desc').value,amount:Number(document.getElementById('e-amt').value),
-    payer:document.getElementById('e-payer').value};
+    payer:document.getElementById('e-payer').value,
+    payType:document.getElementById('e-paytype')?.value||'現金',
+    invoice:document.getElementById('e-invoice')?.value||'',
+    settled:false};
   if(e.date&&e.amount){
     EX.push(e);
     expY=Number(dateVal.slice(0,4));
@@ -1093,6 +1147,14 @@ function saveExp(){
   closeModal();rExpense();save();
 }
 window.saveExp=saveExp;
+
+function settleOne(i){EX[i].settled=true;rExpense();save();}
+window.settleOne=settleOne;
+function settleAll(key){
+  EX.filter(e=>e.date&&e.date.startsWith(key)&&e.payType==='月結').forEach(e=>e.settled=true);
+  rExpense();save();
+}
+window.settleAll=settleAll;
 
 // ── 設定 ──
 function rSettings(){
