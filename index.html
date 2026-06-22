@@ -300,7 +300,7 @@ input:focus,select:focus { outline: none; border-color: #888; }
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-import { getFirestore, doc, setDoc, onSnapshot, initializeFirestore, persistentLocalCache } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDGVVoHM68Nz59f2epTI1tU7soXl4gELQQ",
@@ -311,8 +311,7 @@ const firebaseConfig = {
   appId: "1:339764535108:web:9f26fa23f9de7bec6bc111"
 };
 const app = initializeApp(firebaseConfig);
-// Safari 相容：強制使用 longPolling，避免 WebChannel CORS 問題
-const db = initializeFirestore(app, {experimentalForceLongPolling: true});
+const db = getFirestore(app);
 const REF = doc(db, 'company', 'main');
 
 const PAL = [
@@ -412,10 +411,20 @@ function todayStr(){return new Date().toISOString().slice(0,10);}
 function showS(type,msg){const b=document.getElementById('sbadge');b.className='sbadge show '+type;b.innerHTML=msg;if(type!=='syn')setTimeout(()=>b.classList.remove('show'),2500);}
 function setOL(v){const d=document.getElementById('cdot');d.className='cdot '+(v?'on':'off');d.title=v?'已連線 Firebase':'離線';}
 let stimer=null;
+function cleanObj(obj){
+  // 移除所有 undefined 值，Firestore 不支援 undefined
+  return JSON.parse(JSON.stringify(obj, (k,v)=>v===undefined?null:v));
+}
 function save(){clearTimeout(stimer);stimer=setTimeout(async()=>{
   showS('syn','<i class="ti ti-cloud-upload"></i> 同步中…');
-  try{await setDoc(REF,{G,MD,EX,IN});setOL(true);showS('ok','<i class="ti ti-check"></i> 已同步');}
-  catch(e){setOL(false);showS('err','<i class="ti ti-alert-triangle"></i> 同步失敗');}
+  try{
+    await setDoc(REF,cleanObj({G,MD,EX,IN}));
+    setOL(true);showS('ok','<i class="ti ti-check"></i> 已同步');
+  }
+  catch(e){
+    console.error('save error:',e);
+    setOL(false);showS('err','<i class="ti ti-alert-triangle"></i> 同步失敗：'+e.message);
+  }
 },800);}
 
 // ── tab ──
