@@ -775,8 +775,8 @@ function rSalary(){
     <td>${d.drivePay>0?`<span style="color:#0F6E56">$${d.drivePay.toLocaleString()}</span>`:'—'}</td>
     <td>${d.lateFine>0?`<span style="color:#A32D2D">-$${d.lateFine.toLocaleString()}</span>`:'0'}</td>
     <td style="font-weight:500">$${d.net.toLocaleString()}</td>
-    <td>${adv>0?`<span class="badge bg-purple">+$${adv.toLocaleString()}</span>`:'—'}</td>
-    <td style="font-weight:500;color:#1D9E75">$${(d.net+adv).toLocaleString()}</td></tr>`;
+    <td>${adv!==0?`<span class="badge" style="background:${adv>0?'#CEBBF8':'#FCEBEB'};color:${adv>0?'#534AB7':'#A32D2D'}">${adv>0?'+':''}$${adv.toLocaleString()}</span>`:'—'}</td>
+    <td style="font-weight:500;color:${(d.net+adv)>=0?'#1D9E75':'#A32D2D'}">$${(d.net+adv).toLocaleString()}</td></tr>`;
   }).join('');
   document.getElementById('etabs').innerHTML=md.employees.map(e=>
     `<button class="etab ${e.name===actEmp?'active':''}" onclick="selEmp('${e.name}')">${e.name}</button>`).join('');
@@ -794,7 +794,7 @@ function rEmpDetail(ed,key,md){
     <div class="esi"><div class="esi-l">開車費</div><div class="esi-v" style="color:#0F6E56">$${(d.drivePay||0).toLocaleString()}</div></div>
     <div class="esi"><div class="esi-l">薪資小計</div><div class="esi-v" style="color:#1D9E75">$${d.net.toLocaleString()}</div></div>
     <div class="esi" style="${adv>0?'border:0.5px solid #CEBBF8;border-radius:8px':''}">
-      <div class="esi-l">代墊金額</div><div class="esi-v" style="color:#534AB7">$${adv.toLocaleString()}</div></div>`;
+      <div class="esi-l">代墊金額</div><div class="esi-v" style="color:${adv>=0?'#534AB7':'#A32D2D'}">$${adv.toLocaleString()}</div></div>`;
   // 合併打卡紀錄和月曆去向，兩邊資料都要顯示
   const punchMap={};
   md.punches.filter(p=>p.name===actEmp).forEach(p=>{punchMap[p.date]=p;});
