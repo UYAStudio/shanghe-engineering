@@ -503,12 +503,12 @@ function rSummary(){
   md.employees.filter(e=>(ed[e.name]||{days:0}).days>0||empAdv(e.name)>0).forEach(e=>{
     const d=ed[e.name]||{net:0};const adv=empAdv(e.name,salKey());
     h+=`<tr><td style="font-weight:500">${e.name}</td><td>$${d.net.toLocaleString()}</td>
-      <td>${adv>0?`<span style="color:#534AB7">$${adv.toLocaleString()}</span>`:'—'}</td>
-      <td style="font-weight:500;color:#1D9E75">$${(d.net+adv).toLocaleString()}</td></tr>`;
+      <td>${adv!==0?`<span style="color:${adv>0?'#534AB7':'#A32D2D'}">$${adv.toLocaleString()}</span>`:'—'}</td>
+      <td style="font-weight:500;color:${(d.net+adv)>=0?'#1D9E75':'#A32D2D'}">$${(d.net+adv).toLocaleString()}</td></tr>`;
   });
   h+=`<tr class="trow"><td>合計</td><td style="color:#1D9E75">$${totalSal.toLocaleString()}</td>
-    <td style="color:#534AB7">${totalAdv>0?'$'+totalAdv.toLocaleString():'—'}</td>
-    <td style="color:#1D9E75">$${(totalSal+totalAdv).toLocaleString()}</td></tr>
+    <td style="color:${totalAdv>0?'#534AB7':totalAdv<0?'#A32D2D':'#888'}">${totalAdv!==0?'$'+totalAdv.toLocaleString():'—'}</td>
+    <td style="color:${(totalSal+totalAdv)>=0?'#1D9E75':'#A32D2D'}">$${(totalSal+totalAdv).toLocaleString()}</td></tr>
   </tbody></table></div>
   <div class="card" style="margin:0"><div class="stitle">支出類別</div>
   <table><thead><tr><th>類別</th><th>金額</th></tr></thead><tbody>`;
