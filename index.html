@@ -598,7 +598,14 @@ function saveDayLoc(dstr){
   const obj={};
   md.employees.forEach(e=>{
     const checked=[...document.querySelectorAll(`input[name="loc-${e.name}"]:checked`)].map(cb=>cb.value);
-    if(checked.length>0) obj[e.name]=checked.join('/');
+    if(checked.length>0){
+      obj[e.name]=checked.join('/');
+      // 如果該員工當天沒有打卡紀錄，自動帶入 08:00-17:00
+      const hasPunch=md.punches.find(p=>p.date===dstr&&p.name===e.name);
+      if(!hasPunch){
+        md.punches.push({date:dstr,name:e.name,in:'08:00',out:'17:00',loc:checked.join('/')});
+      }
+    }
   });
   if(Object.keys(obj).length>0)md.locations[dstr]=obj;else delete md.locations[dstr];
   closeModal();rCal();save();
