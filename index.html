@@ -299,8 +299,8 @@ input:focus,select:focus { outline: none; border-color: #888; }
 <div id="modal-root"></div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+import { getFirestore, doc, setDoc, onSnapshot, initializeFirestore, persistentLocalCache } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDGVVoHM68Nz59f2epTI1tU7soXl4gELQQ",
@@ -311,7 +311,8 @@ const firebaseConfig = {
   appId: "1:339764535108:web:9f26fa23f9de7bec6bc111"
 };
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// Safari 相容：強制使用 longPolling，避免 WebChannel CORS 問題
+const db = initializeFirestore(app, {experimentalForceLongPolling: true});
 const REF = doc(db, 'company', 'main');
 
 const PAL = [
