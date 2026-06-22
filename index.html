@@ -363,6 +363,8 @@ let _expInit=false, _incInit=false;
 function pad(n){return String(n).padStart(2,'0');}
 function ds(y,m,d){return `${y}-${pad(m)}-${pad(d)}`;}
 function getMD(key){
+  // 防止空 key 或格式不對的 key 進入 MD
+  if(!key||!key.match(/^\d{4}-\d{2}$/)) return {employees:[],locTypes:[],locations:{},punches:[]};
   if(!MD[key]){
     const [y,m]=key.split('-').map(Number);
     let pm=m-1,py=y;if(pm<1){pm=12;py--;}
@@ -412,13 +414,15 @@ function showS(type,msg){const b=document.getElementById('sbadge');b.className='
 function setOL(v){const d=document.getElementById('cdot');d.className='cdot '+(v?'on':'off');d.title=v?'已連線 Firebase':'離線';}
 let stimer=null;
 function cleanObj(obj){
-  // 移除所有 undefined 值，Firestore 不支援 undefined
   return JSON.parse(JSON.stringify(obj, (k,v)=>v===undefined?null:v));
 }
 function save(){clearTimeout(stimer);stimer=setTimeout(async()=>{
   showS('syn','<i class="ti ti-cloud-upload"></i> 同步中…');
   try{
-    await setDoc(REF,cleanObj({G,MD,EX,IN}));
+    // 過濾掉 MD 裡 key 為空字串的資料
+    const cleanMD={};
+    Object.keys(MD).forEach(k=>{if(k&&k.match(/^\d{4}-\d{2}$/))cleanMD[k]=MD[k];});
+    await setDoc(REF,cleanObj({G,MD:cleanMD,EX,IN}));
     setOL(true);showS('ok','<i class="ti ti-check"></i> 已同步');
   }
   catch(e){
