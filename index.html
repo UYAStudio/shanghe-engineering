@@ -315,18 +315,18 @@ const db = getFirestore(app);
 const REF = doc(db, 'company', 'main');
 
 const PAL = [
-  {bg:'#E8F4FD',fg:'#2B6CB0',dot:'#63B3ED'}, // 淡藍
-  {bg:'#EBF8F2',fg:'#276749',dot:'#68D391'}, // 淡綠
-  {bg:'#FEF3E8',fg:'#B7621A',dot:'#F6AD55'}, // 淡橙
-  {bg:'#F3EEFE',fg:'#553C9A',dot:'#B794F4'}, // 淡紫
-  {bg:'#FFF0F3',fg:'#97266D',dot:'#F687B3'}, // 淡粉
-  {bg:'#E8FDF5',fg:'#1A7F64',dot:'#4FD1C5'}, // 淡青綠
-  {bg:'#FEFCE8',fg:'#975A16',dot:'#F6E05E'}, // 淡鵝黃
-  {bg:'#EDF2FF',fg:'#3730A3',dot:'#818CF8'}, // 淡靛藍
-  {bg:'#F0FDF4',fg:'#14532D',dot:'#86EFAC'}, // 淡草綠
-  {bg:'#FFF7ED',fg:'#9A3412',dot:'#FCA989'}, // 淡蜜桃
-  {bg:'#F5F3FF',fg:'#4C1D95',dot:'#A78BFA'}, // 淡薰衣草
-  {bg:'#ECFDF5',fg:'#065F46',dot:'#6EE7B7'}, // 淡薄荷
+  {bg:'#E8F0FB',fg:'#2C5282',dot:'#5A87C5'}, // 灰藍
+  {bg:'#EAF0E8',fg:'#2D4A22',dot:'#5A8A4A'}, // 灰綠
+  {bg:'#F5EFE6',fg:'#7B4F2A',dot:'#C49060'}, // 暖棕
+  {bg:'#EDE8F5',fg:'#4A3570',dot:'#8B72BE'}, // 灰紫
+  {bg:'#F5EAE8',fg:'#7B3028',dot:'#C06050'}, // 磚紅（偏棕不像支出紅）
+  {bg:'#E8F0EE',fg:'#1E4D40',dot:'#4A8A7A'}, // 灰青
+  {bg:'#F5F0E0',fg:'#6B5520',dot:'#B09040'}, // 卡其黃
+  {bg:'#E8E8F0',fg:'#383870',dot:'#6868A8'}, // 藍灰紫
+  {bg:'#EEF0E8',fg:'#3A4A25',dot:'#6A8040'}, // 橄欖綠
+  {bg:'#F0EAE8',fg:'#6B3A30',dot:'#A87060'}, // 陶土
+  {bg:'#EAE8F0',fg:'#3A3060',dot:'#6A60A0'}, // 深薰衣草
+  {bg:'#E8EEF0',fg:'#1E3D4D',dot:'#4A7A90'}, // 深青藍
 ];
 let palIdx = 0;
 
@@ -592,6 +592,11 @@ function rCal(){
       });
     }
     if(unknownEmps.length>0){inner+=`<div class="de" style="background:#f0ede8;color:#999">？: ${unknownEmps.map(e=>e[0]).join('')}</div>`;}
+    // 當天收入支出金額
+    const dayInc=IN.filter(r=>r.date===dstr).reduce((s,r)=>s+(r.amount||0),0);
+    const dayExp=EX.filter(e=>e.date===dstr).reduce((s,e)=>s+(e.amount||0),0);
+    if(dayInc>0) inner+=`<div style="font-size:9px;color:#276749;background:#EBF8F2;padding:1px 4px;border-radius:3px;margin-top:2px">+$${dayInc.toLocaleString()}</div>`;
+    if(dayExp>0) inner+=`<div style="font-size:9px;color:#9B2335;background:#FBE8EA;padding:1px 4px;border-radius:3px;margin-top:1px">-$${dayExp.toLocaleString()}</div>`;
     h+=`<div class="cd${isT?' today':''}${hasAny?' hasdata':''}" onclick="clickDay('${dstr}')">${inner}</div></div>`;
   }
   document.getElementById('cal').innerHTML=h;
