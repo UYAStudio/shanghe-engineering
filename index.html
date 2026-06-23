@@ -436,11 +436,18 @@ function T(t){
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['summary','calendar','salary','expense','income','settings'][i]===t));
   document.querySelectorAll('.sec').forEach(el=>el.classList.remove('active'));
   document.getElementById('s-'+t).classList.add('active');
-  if(t==='summary'){iSumSel();rSummary();}
+  if(t==='summary'){
+    // 同步月結到月曆月份
+    iSumSel();
+    const key=`${calY}-${pad(calM)}`;
+    const sel=document.getElementById('sum-sel');
+    if(sel&&[...sel.options].find(o=>o.value===key)) sel.value=key;
+    rSummary();
+  }
   if(t==='calendar') rCal();
   if(t==='salary'){salY=calY;salM=calM;rSalary();}
-  if(t==='expense'){if(!_expInit){expY=_prevY;expM=_prevM;_expInit=true;}rExpense();}
-  if(t==='income'){if(!_incInit){incY=_prevY;incM=_prevM;_incInit=true;}rIncome();}
+  if(t==='expense'){expY=calY;expM=calM;rExpense();}
+  if(t==='income'){incY=calY;incM=calM;rIncome();}
   if(t==='settings') rSettings();
 }
 window.T=T;
@@ -455,11 +462,12 @@ function rSummary(){
   iSumSel();
   const m=document.getElementById('sum-sel').value;
 
-  // ── 累計結餘（所有月份，不分當月）──
-  const allInc=IN.reduce((s,r)=>s+(r.amount||0),0);
-  const allExp=EX.reduce((s,e)=>s+(e.amount||0),0);
+  // ── 累計結餘（只算到當前查看月份）──
+  const curKey=`${calY}-${pad(calM)}`;
+  const allInc=IN.filter(r=>r.date&&r.date.slice(0,7)<=curKey).reduce((s,r)=>s+(r.amount||0),0);
+  const allExp=EX.filter(e=>e.date&&e.date.slice(0,7)<=curKey).reduce((s,e)=>s+(e.amount||0),0);
   let allSal=0;
-  Object.keys(MD).forEach(k=>{
+  Object.keys(MD).filter(k=>k<=curKey).forEach(k=>{
     const ed2=calcED(k);
     getMD(k).employees.forEach(e=>{allSal+=(ed2[e.name]||{net:0}).net;});
   });
@@ -536,7 +544,14 @@ function rSummary(){
 window.rSummary=rSummary;
 
 // ── 月曆 ──
-function chMo(d){calM+=d;if(calM>12){calM=1;calY++;}if(calM<1){calM=12;calY--;}rCal();}
+function chMo(d){
+  calM+=d;if(calM>12){calM=1;calY++;}if(calM<1){calM=12;calY--;}
+  // 同步所有頁面月份
+  salY=calY;salM=calM;
+  expY=calY;expM=calM;
+  incY=calY;incM=calM;
+  rCal();
+}
 window.chMo=chMo;
 function rCal(){
   const mns=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
@@ -600,11 +615,14 @@ function saveDayLoc(dstr){
     const checked=[...document.querySelectorAll(`input[name="loc-${e.name}"]:checked`)].map(cb=>cb.value);
     if(checked.length>0){
       obj[e.name]=checked.join('/');
-      // 如果該員工當天沒有打卡紀錄，自動帶入 08:00-17:00
+      // 沒有打卡紀錄 → 自動帶入 08:00-17:00
       const hasPunch=md.punches.find(p=>p.date===dstr&&p.name===e.name);
       if(!hasPunch){
         md.punches.push({date:dstr,name:e.name,in:'08:00',out:'17:00',loc:checked.join('/')});
       }
+    } else {
+      // 取消所有勾選 → 刪除該員工當天打卡紀錄
+      md.punches=md.punches.filter(p=>!(p.date===dstr&&p.name===e.name));
     }
   });
   if(Object.keys(obj).length>0)md.locations[dstr]=obj;else delete md.locations[dstr];
