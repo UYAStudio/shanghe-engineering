@@ -315,11 +315,18 @@ const db = getFirestore(app);
 const REF = doc(db, 'company', 'main');
 
 const PAL = [
-  {bg:'#E6F1FB',fg:'#185FA5',dot:'#378ADD'},{bg:'#EEEDFE',fg:'#534AB7',dot:'#7F77DD'},
-  {bg:'#E1F5EE',fg:'#0F6E56',dot:'#1D9E75'},{bg:'#FAEEDA',fg:'#854F0B',dot:'#EF9F27'},
-  {bg:'#FAECE7',fg:'#993C1D',dot:'#D85A30'},{bg:'#FCEBEB',fg:'#A32D2D',dot:'#E24B4A'},
-  {bg:'#F1EFE8',fg:'#5F5E5A',dot:'#888780'},{bg:'#EAF3DE',fg:'#3B6D11',dot:'#639922'},
-  {bg:'#FBEAF0',fg:'#993556',dot:'#D4537E'},{bg:'#E6F4F8',fg:'#0F4E6E',dot:'#1D7E9E'},
+  {bg:'#E8F4FD',fg:'#2B6CB0',dot:'#63B3ED'}, // 淡藍
+  {bg:'#EBF8F2',fg:'#276749',dot:'#68D391'}, // 淡綠
+  {bg:'#FEF3E8',fg:'#B7621A',dot:'#F6AD55'}, // 淡橙
+  {bg:'#F3EEFE',fg:'#553C9A',dot:'#B794F4'}, // 淡紫
+  {bg:'#FFF0F3',fg:'#97266D',dot:'#F687B3'}, // 淡粉
+  {bg:'#E8FDF5',fg:'#1A7F64',dot:'#4FD1C5'}, // 淡青綠
+  {bg:'#FEFCE8',fg:'#975A16',dot:'#F6E05E'}, // 淡鵝黃
+  {bg:'#EDF2FF',fg:'#3730A3',dot:'#818CF8'}, // 淡靛藍
+  {bg:'#F0FDF4',fg:'#14532D',dot:'#86EFAC'}, // 淡草綠
+  {bg:'#FFF7ED',fg:'#9A3412',dot:'#FCA989'}, // 淡蜜桃
+  {bg:'#F5F3FF',fg:'#4C1D95',dot:'#A78BFA'}, // 淡薰衣草
+  {bg:'#ECFDF5',fg:'#065F46',dot:'#6EE7B7'}, // 淡薄荷
 ];
 let palIdx = 0;
 
@@ -574,12 +581,14 @@ function rCal(){
     const hasAny=Object.keys(validLd).length>0||unknownEmps.length>0;
     if(Object.keys(validLd).length>0){
       const g={};Object.entries(validLd).forEach(([e,l])=>{if(!g[l])g[l]=[];g[l].push(e);});
+      // 按員工設定順序排序每個去向的員工名字
+      const empOrder=md.employees.map(e=>e.name);
       Object.entries(g).forEach(([l,emps])=>{
-        // 支援多地點「/」分隔，用第一個地點的顏色
         const firstLoc=l.split('/')[0];
         const lt=getLoc(key,firstLoc);
         const label=l.split('/').join('、');
-        inner+=`<div class="de" style="background:${lt.bg};color:${lt.fg}">${label}: ${emps.map(e=>e[0]).join('')}</div>`;
+        const sortedEmps=emps.sort((a,b)=>empOrder.indexOf(a)-empOrder.indexOf(b));
+        inner+=`<div class="de" style="background:${lt.bg};color:${lt.fg}">${label}: ${sortedEmps.map(e=>e[0]).join('')}</div>`;
       });
     }
     if(unknownEmps.length>0){inner+=`<div class="de" style="background:#f0ede8;color:#999">？: ${unknownEmps.map(e=>e[0]).join('')}</div>`;}
