@@ -912,8 +912,8 @@ function editPunch(key,dateStr){
         <span id="ep-auto-label" style="font-size:11px;color:#888">系統計算：${autoOt.toFixed(1)}h</span>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <input type="number" id="ep-ot" value="${currentOt.toFixed(1)}" step="0.5" min="0" style="width:100px">
-        <button type="button" class="btn btn-sm" onclick="resetAutoOt(${autoOt})" style="white-space:nowrap;flex-shrink:0">
+        <input type="number" id="ep-ot" value="${p.manualOt!=null?p.manualOt.toFixed(1):''}" step="0.5" min="0" placeholder="系統自動計算" style="width:100px">
+        <button type="button" class="btn btn-sm" onclick="resetAutoOt()" style="white-space:nowrap;flex-shrink:0">
           <i class="ti ti-refresh"></i> 還原系統值
         </button>
       </div>
@@ -994,9 +994,9 @@ function updateAutoOt(){
   label.textContent=`系統計算：${autoOt.toFixed(1)}h`;
 }
 window.updateAutoOt=updateAutoOt;
-function resetAutoOt(autoOt){
+function resetAutoOt(){
   const el=document.getElementById('ep-ot');
-  if(el) el.value=autoOt.toFixed(1);
+  if(el){el.value='';el.placeholder='系統自動計算';}
 }
 window.resetAutoOt=resetAutoOt;
 function saveEditPunch(key,dateStr){
@@ -1007,6 +1007,7 @@ function saveEditPunch(key,dateStr){
   const newOut=document.getElementById('ep-out').value;
   const newLoc=document.getElementById('ep-loc').value;
   const otInput=parseFloat(document.getElementById('ep-ot').value);
+  const otFieldEmpty=document.getElementById('ep-ot').value.trim()==='';
   const hasDrive=document.getElementById('ep-drive')?.checked;
   const driveFee=hasDrive?Number(document.getElementById('ep-drive-fee')?.value||0):null;
   const halfDay=document.getElementById('ep-halfday')?.checked||false;
@@ -1017,12 +1018,8 @@ function saveEditPunch(key,dateStr){
   // 手動加班費（星期日/節日）
   const manualOtPayVal=document.getElementById('ep-manual-ot-pay')?.value;
   const manualOtPay=(manualOtPayVal!==''&&manualOtPayVal!=null)?Number(manualOtPayVal):null;
-  // 計算系統自動值，看是否和手動值一致
-  const[ih,im]=newIn.split(':').map(Number),[oh,om]=newOut.split(':').map(Number);
-  const hours=Math.max(0,((oh*60+om)-(ih*60+im)-G.breakMin)/60);
-  const sysOt=Math.max(0,hours-G.hours);
-  // 若手動值和系統值一致就清除 manualOt（不另存），否則記錄手動值
-  const manualOt=(!isNaN(otInput)&&Math.abs(otInput-sysOt)>0.01)?otInput:null;
+  // 空白 = 還原系統值，用車程邏輯；有值才記錄 manualOt
+  const manualOt=(!otFieldEmpty&&!isNaN(otInput))?otInput:null;
 
   if(newDate!==p.date){
     const oldDate=p.date;
