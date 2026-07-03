@@ -709,6 +709,7 @@ function calcDailyPay(p, wage, key){
   const travelMin=getTravelMin(key||'', p.loc||'');
   // 扣除車程後的實際下班分鐘
   const realOutMin=adjustedOutMin - travelMin;
+  console.log(`calcDailyPay ${p.date} ${p.name}: loc=${p.loc}, adjustedOutMin=${adjustedOutMin}(${Math.floor(adjustedOutMin/60)}:${adjustedOutMin%60}), travelMin=${travelMin}, realOutMin=${realOutMin}(${Math.floor(realOutMin/60)}:${realOutMin%60}), manualOt=${p.manualOt}`);
 
   // 手動加班時數（manualOt）優先，否則從時間計算
   if(p.manualOt!=null){
