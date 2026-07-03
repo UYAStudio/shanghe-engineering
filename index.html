@@ -709,7 +709,7 @@ function calcDailyPay(p, wage, key){
   const travelMin=getTravelMin(key||'', p.loc||'');
   // 扣除車程後的實際下班分鐘
   const realOutMin=adjustedOutMin - travelMin;
-  console.log(`calcDailyPay ${p.date} ${p.name}: loc=${p.loc}, adjustedOutMin=${adjustedOutMin}(${Math.floor(adjustedOutMin/60)}:${adjustedOutMin%60}), travelMin=${travelMin}, realOutMin=${realOutMin}(${Math.floor(realOutMin/60)}:${realOutMin%60}), manualOt=${p.manualOt}`);
+  if(travelMin>0) console.log(`車程扣除 ${p.date} ${p.name}: ${p.loc} 車程${travelMin}分, 下班${Math.floor(adjustedOutMin/60)}:${String(adjustedOutMin%60).padStart(2,'0')} → 扣後${Math.floor(realOutMin/60)}:${String(realOutMin%60).padStart(2,'0')}`);
 
   // 手動加班時數（manualOt）優先，否則從時間計算
   if(p.manualOt!=null){
@@ -847,7 +847,7 @@ function rEmpDetail(ed,key,md){
       const rawLoc=p.loc||md.locations[p.date]?.[p.name];
       // 有打卡但月曆沒去向 → 顯示「？」
       const loc=p._calOnly?rawLoc:(rawLoc||'？');
-      const dn=p._calOnly?0:calcDailyPay(p,ec.wage)-(late?G.lateFine:0);
+      const dn=p._calOnly?0:calcDailyPay(p,ec.wage,key)-(late?G.lateFine:0);
       const isManualOt=p.manualOt!=null;
       const otDisplay=ot>0
         ?`<span style="color:#BA7517">+${ot.toFixed(1)}h${isManualOt?'<span title="手動調整" style="font-size:10px">✎</span>':''}</span>`
